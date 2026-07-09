@@ -1,6 +1,6 @@
-# EasyDrawer - 智能生图 Agent
+# EasyDrawer - AI Image Generation Agent
 
-> 通过算法优化，让相同模型生成更优质的图片
+> Better images through algorithmic optimization — no model upgrade required
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.139+-009688.svg)](https://fastapi.tiangolo.com/)
@@ -8,108 +8,107 @@
 [![React](https://img.shields.io/badge/react-18-61dafb.svg)](https://reactjs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## 为什么选择 EasyDrawer？
+[中文文档](README_CN.md)
 
-直接调用生图 API 只能得到"能用"的图。EasyDrawer 通过 **Prompt Ensemble + CLIP 评分 + Seed 精搜 + img2img 精修** 四阶段管线，自动产出精品图片。
+## Why EasyDrawer?
 
-| 传统方式 | EasyDrawer v0.3 |
+Calling a generation API directly gives you "usable" images. EasyDrawer adds a **Prompt Ensemble → CLIP Scoring → Seed Search → img2img Refinement** pipeline that automates quality optimization.
+
+| Raw API | EasyDrawer v0.3 |
 |---------|-----------------|
-| 手写提示词 | 3 变体 Prompt Ensemble 自动生成最优提示词 |
-| 1 张碰运气 | 批量生成 → CLIP 评分 → 只返回最佳 |
-| 质量不可控 | Seed 邻域搜索 + img2img 精修双重打磨 |
-| 不支持多 LLM | 前端自由切换 Anthropic / OpenAI / DeepSeek / 自定义 |
+| Manual prompt writing | 3-variant prompt ensemble, AI-optimized |
+| One-shot luck | Batch generation → CLIP scoring → best pick |
+| Unpredictable quality | Seed neighbor search + img2img refinement |
+| Vendor lock-in | Switch LLMs on the fly: Anthropic / OpenAI / DeepSeek / custom |
 
-## 快速开始
+## Quick Start
 
-### 1. 启动项目
+### 1. Launch
 
 ```bash
 cd EasyDrawer
 
-# 一键启动后端（自动检测环境，无需预先配置）
+# Start backend (auto-detects environment, no config required)
 python run.py
 
-# 同时启动前端
+# Or start both frontend and backend
 python run.py --frontend
 ```
 
-### 2. 配置 LLM
+### 2. Configure LLM
 
-打开浏览器访问 http://localhost:3000，点击右上角齿轮按钮配置 API：
+Open http://localhost:3000, click the gear icon in the top-right corner:
 
-- **提供商**: Anthropic / OpenAI / DeepSeek / Moonshot / 智谱 / 自定义
-- **API 地址**: 支持代理、中转、内网部署
-- **API Key**: 仅保存在浏览器中
+- **Provider**: Anthropic / OpenAI / DeepSeek / Moonshot / Zhipu / Custom (OpenAI-compatible)
+- **API URL**: Supports proxies, relays, self-hosted endpoints
+- **API Key**: Stored in browser only, never sent to the server for storage
 
-无需编辑 .env，无需重启服务。
+No `.env` editing required. No restart needed.
 
-### 3. 开始生图
+### 3. Generate
 
-输入描述 → 选择风格 → 点击生成，等待 30-60 秒即可获得精修后的最佳图片。
+Enter a description → pick a style → click Generate. In 30-60 seconds you get the refined best image.
 
-## 工作流程
+## Pipeline
 
 ```
-用户输入
+User Input
   │
-  ├─→ 提示词优化     3 变体 Ensemble（构图/光影/细节）
-  ├─→ 参数优化       自动选择最优 Steps/CFG/Sampler
-  ├─→ 批量生成       SD 4.0 / FLUX 双后端
-  ├─→ CLIP 评分      批量推理，2-3x 加速
-  ├─→ 质量评估       不达标自动反馈重试
-  ├─→ Seed 精搜      邻域搜索更优种子
-  ├─→ img2img 精修   低强度去噪，保留构图提升细节
+  ├─→ Prompt Optimize    3-variant ensemble (composition / lighting / detail)
+  ├─→ Parameter Tuning   Auto-optimal steps, CFG, sampler per scene type
+  ├─→ Batch Generate     SD 4.0 / FLUX dual backends
+  ├─→ CLIP Scoring       Batch inference, 2-3x speedup
+  ├─→ Quality Gate       Auto-retry with feedback if score < threshold
+  ├─→ Seed Refine        Neighbor search for better compositions
+  ├─→ img2img Refine     Low-denoise polish preserving structure, enhancing detail
   │
-  └─→ 返回最佳结果
+  └─→ Return best result
 ```
 
-## 技术栈
+## Tech Stack
 
-**后端**
-- FastAPI 0.139 — 异步高性能 API
-- LangGraph 1.2 — 8 节点工作流编排
-- CLIP ViT-L/14 — 批量图片质量评分
-- Anthropic SDK — 结构化输出 + Prompt 缓存
+**Backend**
+- FastAPI 0.139 — Async high-performance API
+- LangGraph 1.2 — 8-node workflow orchestration
+- CLIP ViT-L/14 — Batch image quality scoring
+- Anthropic SDK — Structured output + prompt caching
 
-**前端**
+**Frontend**
 - React 18 + TypeScript + Vite 5
 - TailwindCSS 4 + Lucide React
 
-**支持的后端**
-- Stable Diffusion WebUI / API
-- FLUX API
+**Supported Backends**: Stable Diffusion (WebUI / API) · FLUX
 
-## 启动选项
+## Run Options
 
 ```bash
-# 后端
-python run.py                  # 交互式启动
-python run.py --install        # 强制安装依赖
-python run.py --skip-install   # 跳过依赖检查
+# Backend
+python run.py                  # Interactive start
+python run.py --install        # Force install dependencies
+python run.py --skip-install   # Skip dependency check
 
-# 前端（独立启动）
+# Frontend (standalone)
 cd frontend
-python start.py                # 跨平台 Python 启动器
-# 或
+python start.py                # Cross-platform launcher
 start.bat                      # Windows
 ./start.sh                     # Linux/macOS
 ```
 
-## API 接口
+## API Endpoints
 
-| 方法 | 路径 | 说明 |
+| Method | Path | Description |
 |-----|------|------|
-| GET | `/health` | 健康检查 |
-| POST | `/generate` | 完整生图 |
-| POST | `/generate/stream` | SSE 流式生图 |
-| POST | `/optimize-prompt` | 仅优化提示词 |
-| GET | `/history` | 查询生成历史 |
-| GET | `/history/{id}` | 获取历史详情 |
-| DELETE | `/history/{id}` | 删除历史记录 |
+| GET | `/health` | Health check |
+| POST | `/generate` | Full generation |
+| POST | `/generate/stream` | SSE streaming generation |
+| POST | `/optimize-prompt` | Prompt optimization only |
+| GET | `/history` | Query generation history |
+| GET | `/history/{id}` | Get history detail |
+| DELETE | `/history/{id}` | Delete history record |
 
-接口文档: http://localhost:8000/docs
+API docs: http://localhost:8000/docs
 
-## Python API 示例
+## Python API
 
 ```python
 import httpx
@@ -120,43 +119,43 @@ async def generate():
         resp = await client.post(
             "http://localhost:8000/generate",
             headers={"X-Anthropic-API-Key": "your-api-key"},
-            json={"prompt": "一只英短蓝猫", "style": "realistic"}
+            json={"prompt": "a british shorthair blue cat", "style": "realistic"}
         )
         data = resp.json()
-        print(f"质量分: {data['best_image']['quality_score']:.1f}")
+        print(f"Quality score: {data['best_image']['quality_score']:.1f}")
 
 asyncio.run(generate())
 ```
 
-## 项目结构
+## Project Structure
 
 ```
 EasyDrawer/
 ├── src/
-│   ├── api/main.py              # FastAPI 入口
-│   ├── agent/workflow.py        # LangGraph 8 节点工作流
+│   ├── api/main.py              # FastAPI entry point
+│   ├── agent/workflow.py        # LangGraph 8-node workflow
 │   ├── services/
-│   │   ├── prompt_optimizer.py  # 提示词优化 + 结构化输出
-│   │   ├── parameter_optimizer.py  # 参数智能调优
-│   │   ├── sd_client.py         # SD API 客户端
-│   │   ├── flux_client.py       # FLUX API 客户端
-│   │   ├── quality_scorer.py    # CLIP 批量评分
-│   │   └── history.py           # SQLite 历史持久化
-│   ├── models/schemas.py        # Pydantic 数据模型
-│   └── config.py                # 配置管理
-├── frontend/                    # React 前端
-│   └── src/components/          # UI 组件
-├── data/prompts/                # 提示词库
-├── tests/                       # 测试
-├── run.py                       # 跨平台启动脚本
+│   │   ├── prompt_optimizer.py  # Prompt optimization + structured output
+│   │   ├── parameter_optimizer.py  # Parameter auto-tuning
+│   │   ├── sd_client.py         # SD API client
+│   │   ├── flux_client.py       # FLUX API client
+│   │   ├── quality_scorer.py    # CLIP batch scoring
+│   │   └── history.py           # SQLite history persistence
+│   ├── models/schemas.py        # Pydantic data models
+│   └── config.py                # Configuration
+├── frontend/                    # React frontend
+│   └── src/components/          # UI components
+├── data/prompts/                # Prompt libraries
+├── tests/                       # Tests
+├── run.py                       # Cross-platform launcher
 └── pyproject.toml
 ```
 
-## 系统要求
+## Requirements
 
 - Python 3.11+
-- Node.js 18+（仅前端）
-- Stable Diffusion WebUI 或 FLUX 或任意 SD API
+- Node.js 18+ (frontend only)
+- Stable Diffusion WebUI / FLUX / or any SD-compatible API
 
 ## License
 
