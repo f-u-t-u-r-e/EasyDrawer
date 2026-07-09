@@ -1,4 +1,4 @@
-# EasyDrawer - 智能生图 Agent
+# EasyDrawer
 
 > 通过算法优化，让相同模型生成更优质的图片 — 无需升级模型
 
