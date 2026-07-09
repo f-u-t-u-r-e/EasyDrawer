@@ -18,11 +18,16 @@ class Settings(BaseSettings):
     llm_max_tokens: int = 2000
 
     # 图片生成后端配置
-    image_backend: str = "sd"  # "sd" | "flux"
+    image_backend: str = "flux"  # "sd" | "flux"
     sd_api_url: str = "http://localhost:7860"
     sd_api_key: str | None = None
-    flux_api_url: str = "https://api.us1.bfl.ai/v1"
+    flux_api_url: str = "https://api.bfl.ai/v1"
     flux_api_key: str | None = None
+    flux_model_endpoint: str = "flux-2-pro-preview"
+    flux_output_format: str = "jpeg"
+    flux_safety_tolerance: int = 2
+    flux_disable_pup: bool = False
+    flux_poll_timeout: float = 120.0
 
     # 生成参数
     sd_batch_size: int = 3

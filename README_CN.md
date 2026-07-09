@@ -47,9 +47,22 @@ python run.py --frontend
 
 无需编辑 .env，无需重启服务。
 
-### 3. 开始生图
+### 3. 配置 BFL FLUX
 
-输入描述 → 选择风格 → 点击生成，等待 30-60 秒即可获得精修后的最佳图片。
+如果你希望全程调用云端 API 生图，只需要在 `.env` 写入 BFL key：
+
+```env
+IMAGE_BACKEND=flux
+FLUX_API_URL=https://api.bfl.ai/v1
+FLUX_API_KEY=your_bfl_api_key_here
+FLUX_MODEL_ENDPOINT=flux-2-pro-preview
+```
+
+默认使用 `flux-2-pro-preview`，适合优先追求质量和新能力；如果需要固定生产快照，可以改成 `flux-2-pro`。
+
+### 4. 开始生图
+
+输入描述 → 选择风格 → 点击生成。EasyDrawer 会自动优化提示词，调用 BFL FLUX 生成候选图，评分后返回最佳图片。
 
 ## 工作流程
 
@@ -93,7 +106,7 @@ python run.py --frontend
 - TailwindCSS 4 + Lucide React
 - Glassmorphism 设计系统
 
-**支持的后端**: Stable Diffusion (WebUI / API) · FLUX
+**支持的后端**: BFL FLUX API · Stable Diffusion (WebUI / API)
 
 ## 启动选项
 
@@ -181,8 +194,9 @@ EasyDrawer/
 
 - Python 3.11+
 - Node.js 18+（仅前端）
-- Stable Diffusion WebUI（需开启 `--api` 参数）/ FLUX / 或任意兼容 SD 的 API
-- Anthropic Claude API Key（或兼容的 OpenAI 端点）
+- BFL FLUX API Key（云端生图）
+- Anthropic Claude API Key（或兼容的 OpenAI 端点，用于提示词优化）
+- Stable Diffusion WebUI（仅在使用 `IMAGE_BACKEND=sd` 时需要开启 `--api` 参数）
 
 ## License
 

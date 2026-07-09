@@ -47,9 +47,22 @@ Open http://localhost:3000, click the gear icon in the top-right corner:
 
 No `.env` editing required. No restart needed.
 
-### 3. Generate
+### 3. Configure BFL FLUX
 
-Enter a description → pick a style → click Generate. In 30-60 seconds you get the refined best image.
+For API-only image generation, put your BFL key in `.env`:
+
+```env
+IMAGE_BACKEND=flux
+FLUX_API_URL=https://api.bfl.ai/v1
+FLUX_API_KEY=your_bfl_api_key_here
+FLUX_MODEL_ENDPOINT=flux-2-pro-preview
+```
+
+`flux-2-pro-preview` is the default high-quality endpoint. Use `flux-2-pro` when you prefer a pinned production snapshot.
+
+### 4. Generate
+
+Enter a description → pick a style → click Generate. EasyDrawer optimizes the prompt, calls BFL FLUX through the backend, scores the candidates, and returns the best image.
 
 ## Pipeline
 
@@ -93,7 +106,7 @@ When CLIP is available but the optional aesthetic predictor is missing, scoring 
 - TailwindCSS 4 + Lucide React
 - Glassmorphism design system
 
-**Supported Backends**: Stable Diffusion (WebUI / API) · FLUX
+**Supported Backends**: BFL FLUX API · Stable Diffusion (WebUI / API)
 
 ## Run Options
 
@@ -181,8 +194,9 @@ EasyDrawer/
 
 - Python 3.11+
 - Node.js 18+ (frontend only)
-- Stable Diffusion WebUI (with `--api` flag) / FLUX / or any SD-compatible API
-- Anthropic Claude API Key (or compatible OpenAI endpoint)
+- BFL FLUX API key for cloud image generation
+- Anthropic Claude API Key (or compatible OpenAI endpoint) for prompt optimization
+- Stable Diffusion WebUI (with `--api` flag) only when using `IMAGE_BACKEND=sd`
 
 ## License
 

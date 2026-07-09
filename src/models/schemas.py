@@ -130,7 +130,7 @@ class FLUXParameters(BaseModel):
     prompt: str
     width: int = 1024
     height: int = 1024
-    steps: int = 4  # FLUX schnell 4步即可
+    steps: int = 4  # Legacy FLUX endpoints may use this; FLUX.2 pro ignores it.
     guidance: float = 3.5
     seed: int = -1
 
