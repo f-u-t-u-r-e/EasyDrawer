@@ -1,0 +1,55 @@
+[project]
+name = "easydrawer"
+version = "0.3.0"
+description = "AI图片生成Agent - 通过优化算法在固定模型下生成最优质图片"
+requires-python = ">=3.11"
+dependencies = [
+    # Web框架
+    "fastapi>=0.139.0",
+    "uvicorn[standard]>=0.34.0",
+    "sse-starlette>=2.1.0",
+    # Agent编排
+    "langgraph>=1.2.0",
+    "langchain-core>=0.3.0",
+    "langchain-anthropic>=0.3.0",
+    "anthropic>=0.40.0",
+    # HTTP
+    "httpx>=0.28.0",
+    # 数据验证
+    "pydantic>=2.9.0",
+    "pydantic-settings>=2.5.0",
+    # 图片处理
+    "pillow>=11.0.0",
+    "numpy>=2.1.0",
+    # 质量评分（CLIP + 美学模型）
+    "open-clip-torch>=2.26.0",
+    "torch>=2.4.0",
+    # 图片质量指标
+    "scipy>=1.14.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true

@@ -1,0 +1,51 @@
+{
+  "common": [
+    "masterpiece",
+    "best quality",
+    "highly detailed",
+    "8k uhd",
+    "professional",
+    "sharp focus"
+  ],
+  "realistic": [
+    "photorealistic",
+    "ultra realistic",
+    "studio lighting",
+    "professional photography",
+    "DSLR",
+    "bokeh",
+    "ray tracing"
+  ],
+  "artistic": [
+    "award winning",
+    "artstation trending",
+    "concept art",
+    "digital painting",
+    "matte painting",
+    "cinematic lighting"
+  ],
+  "anime": [
+    "anime style",
+    "cel shaded",
+    "vibrant colors",
+    "clean lines",
+    "Studio Ghibli style",
+    "makoto shinkai"
+  ],
+  "portrait": [
+    "professional portrait",
+    "perfect face",
+    "detailed eyes",
+    "skin texture",
+    "soft lighting",
+    "shallow depth of field"
+  ],
+  "landscape": [
+    "epic scenery",
+    "vast landscape",
+    "dramatic lighting",
+    "atmospheric",
+    "volumetric lighting",
+    "wide angle"
+  ]
+}
