@@ -73,8 +73,43 @@ class ParameterOptimizer:
 
     # bandit 探索率 — ε-greedy 中 ε 的值
     BANDIT_EPSILON = 0.2
+    BANDIT_MIN_BUCKET_SAMPLES = 2
+    BANDIT_MIN_ADVANTAGE = 2.0
+    BANDIT_HISTORY_BLEND = 0.6
 
     # ── bandit 反馈 ──────────────────────────────────────────
+
+    def _best_supported_bucket(
+        self,
+        buckets: dict[float | int, list[float]],
+    ) -> tuple[float | int, float] | None:
+        """Return the best average bucket after filtering out one-off samples."""
+        supported = {
+            bucket: scores
+            for bucket, scores in buckets.items()
+            if len(scores) >= self.BANDIT_MIN_BUCKET_SAMPLES
+        }
+        if not supported:
+            return None
+
+        best_bucket = max(
+            supported.keys(),
+            key=lambda b: sum(supported[b]) / len(supported[b]),
+        )
+        best_avg = sum(supported[best_bucket]) / len(supported[best_bucket])
+        return best_bucket, best_avg
+
+    def _bucket_average_or_global(
+        self,
+        buckets: dict[float | int, list[float]],
+        bucket: float | int,
+    ) -> float:
+        """Use the requested bucket average, or the global average when it is absent."""
+        if bucket in buckets:
+            return sum(buckets[bucket]) / len(buckets[bucket])
+
+        scores = [score for bucket_scores in buckets.values() for score in bucket_scores]
+        return sum(scores) / len(scores) if scores else 0.0
 
     def _bandit_adjust_cfg(
         self,
@@ -115,25 +150,22 @@ class ParameterOptimizer:
         if not cfg_buckets:
             return base_cfg
 
-        # 找到历史均分最高的 CFG 桶
-        best_bucket = max(
-            cfg_buckets.keys(),
-            key=lambda b: sum(cfg_buckets[b]) / len(cfg_buckets[b]),
-        )
-        best_avg = sum(cfg_buckets[best_bucket]) / len(cfg_buckets[best_bucket])
+        supported_best = self._best_supported_bucket(cfg_buckets)
+        if supported_best is None:
+            return base_cfg
+        best_bucket, best_avg = supported_best
 
         # 计算基础 CFG 桶的历史均分
         base_bucket = round(base_cfg * 2) / 2
-        base_avg = (
-            sum(cfg_buckets[base_bucket]) / len(cfg_buckets[base_bucket])
-            if base_bucket in cfg_buckets
-            else 0
-        )
+        base_avg = self._bucket_average_or_global(cfg_buckets, base_bucket)
 
         # 仅当历史最优桶明显更好（>2 分）时才调整
-        if best_avg - base_avg > 2.0:
+        if best_avg - base_avg > self.BANDIT_MIN_ADVANTAGE:
             # 向历史最优桶平滑过渡（取加权平均，避免跳变）
-            adjusted = base_cfg * 0.4 + best_bucket * 0.6
+            adjusted = (
+                base_cfg * (1 - self.BANDIT_HISTORY_BLEND)
+                + best_bucket * self.BANDIT_HISTORY_BLEND
+            )
             logger.info(
                 "bandit 调整 CFG: %.1f → %.1f (历史最优桶 %.1f 均分 %.1f vs 基础桶均分 %.1f)",
                 base_cfg, adjusted, best_bucket, best_avg, base_avg,
@@ -170,19 +202,18 @@ class ParameterOptimizer:
         if not steps_buckets:
             return base_steps
 
-        best_bucket = max(
-            steps_buckets.keys(),
-            key=lambda b: sum(steps_buckets[b]) / len(steps_buckets[b]),
-        )
-        best_avg = sum(steps_buckets[best_bucket]) / len(steps_buckets[best_bucket])
+        supported_best = self._best_supported_bucket(steps_buckets)
+        if supported_best is None:
+            return base_steps
+        best_bucket, best_avg = supported_best
 
-        if base_steps in steps_buckets:
-            base_avg = sum(steps_buckets[base_steps]) / len(steps_buckets[base_steps])
-        else:
-            base_avg = 0
+        base_avg = self._bucket_average_or_global(steps_buckets, base_steps)
 
-        if best_avg - base_avg > 2.0:
-            adjusted = round(base_steps * 0.4 + best_bucket * 0.6)
+        if best_avg - base_avg > self.BANDIT_MIN_ADVANTAGE:
+            adjusted = round(
+                base_steps * (1 - self.BANDIT_HISTORY_BLEND)
+                + best_bucket * self.BANDIT_HISTORY_BLEND
+            )
             logger.info(
                 "bandit 调整 Steps: %d → %d (历史最优 %d 均分 %.1f)",
                 base_steps, adjusted, best_bucket, best_avg,
@@ -286,19 +317,23 @@ class ParameterOptimizer:
                         guidance_buckets[bucket].append(score)
 
                 if guidance_buckets:
-                    best_bucket = max(
-                        guidance_buckets.keys(),
-                        key=lambda b: sum(guidance_buckets[b]) / len(guidance_buckets[b]),
-                    )
-                    best_avg = sum(guidance_buckets[best_bucket]) / len(guidance_buckets[best_bucket])
-                    base_bucket = round(final_guidance * 2) / 2
-                    base_avg = (
-                        sum(guidance_buckets[base_bucket]) / len(guidance_buckets[base_bucket])
-                        if base_bucket in guidance_buckets
-                        else 0
-                    )
-                    if best_avg - base_avg > 2.0:
-                        final_guidance = final_guidance * 0.4 + best_bucket * 0.6
+                    supported_best = self._best_supported_bucket(guidance_buckets)
+                    if supported_best is None:
+                        best_bucket = None
+                    else:
+                        best_bucket, best_avg = supported_best
+                        base_bucket = round(final_guidance * 2) / 2
+                        base_avg = self._bucket_average_or_global(
+                            guidance_buckets, base_bucket
+                        )
+                    if (
+                        best_bucket is not None
+                        and best_avg - base_avg > self.BANDIT_MIN_ADVANTAGE
+                    ):
+                        final_guidance = (
+                            final_guidance * (1 - self.BANDIT_HISTORY_BLEND)
+                            + best_bucket * self.BANDIT_HISTORY_BLEND
+                        )
                         logger.info(
                             "bandit 调整 FLUX guidance: %.1f → %.1f",
                             base["guidance"], final_guidance,

@@ -1,4 +1,4 @@
-"""图片质量评估模块 v0.3
+"""图片质量评估模块 v0.4
 
 核心升级：
 1. 批量 Tensor 推理 — 多张图片一次 forward pass，速度提升 2-3x
@@ -23,6 +23,15 @@ logger = logging.getLogger(__name__)
 
 class QualityScorer:
     """图片质量评分器 — 批量推理 + embedding 复用"""
+
+    SCORE_WEIGHTS = {
+        # CLIP + aesthetic predictor + technical metrics.
+        "full": (0.40, 0.30, 0.15, 0.15),
+        # CLIP is available, but the optional aesthetic predictor is missing.
+        "clip_only": (0.55, 0.00, 0.20, 0.25),
+        # CLIP failed to load; use only image-space metrics.
+        "technical_only": (0.00, 0.00, 0.50, 0.50),
+    }
 
     def __init__(self) -> None:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -49,7 +58,10 @@ class QualityScorer:
             self._aesthetic_model = self._load_aesthetic_predictor()
 
             self._models_loaded = True
-            logger.info("CLIP + 美学模型加载成功 (device=%s)", self.device)
+            if self._aesthetic_model is not None:
+                logger.info("CLIP + 美学模型加载成功 (device=%s)", self.device)
+            else:
+                logger.info("CLIP 加载成功，美学模型不可用 (device=%s)", self.device)
 
         except Exception as e:
             logger.warning("模型加载失败，使用技术指标评分: %s", e)
@@ -150,17 +162,15 @@ class QualityScorer:
 
         if self._models_loaded and self._clip_model is not None:
             clip_sims, aesthetics = self._batch_clip_inference(pil_images, prompts)
-            scoring_mode = "full"
-            # full 模式权重：CLIP 35% + 美学 35% + 技术 15% + 清晰度 15%
-            w_clip, w_aes, w_tech, w_sharp = 0.35, 0.35, 0.15, 0.15
+            scoring_mode = "full" if self._aesthetic_model is not None else "clip_only"
         else:
             # 无 CLIP 模型：不伪造 CLIP/美学分数，用中性值标记不可用
             # scoring_mode=technical_only 让下游知道评分仅基于技术指标
             clip_sims = [50.0] * len(pil_images)
             aesthetics = [50.0] * len(pil_images)
             scoring_mode = "technical_only"
-            # technical_only 模式权重：技术 50% + 清晰度 50%
-            w_clip, w_aes, w_tech, w_sharp = 0.0, 0.0, 0.50, 0.50
+
+        w_clip, w_aes, w_tech, w_sharp = self._weights_for_mode(scoring_mode)
 
         # 组装结果
         results = []
@@ -180,6 +190,11 @@ class QualityScorer:
             })
 
         return results
+
+    @classmethod
+    def _weights_for_mode(cls, scoring_mode: str) -> tuple[float, float, float, float]:
+        """Return (clip, aesthetic, technical, sharpness) weights for a scoring mode."""
+        return cls.SCORE_WEIGHTS.get(scoring_mode, cls.SCORE_WEIGHTS["technical_only"])
 
     # ── 批量 CLIP 推理（核心优化） ──────────────────────────────
 
@@ -255,6 +270,8 @@ class QualityScorer:
 
     def _decode_image(self, image_b64: str) -> Image.Image:
         """解码 Base64 图片"""
+        if image_b64.startswith("data:") and "," in image_b64:
+            image_b64 = image_b64.split(",", 1)[1]
         img_bytes = base64.b64decode(image_b64)
         return Image.open(BytesIO(img_bytes)).convert("RGB")
 

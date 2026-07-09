@@ -58,6 +58,7 @@ export function getApiKey(): string | null {
 api.interceptors.request.use((config) => {
   const llmConfig = getLLMConfig()
   if (llmConfig?.apiKey) {
+    config.headers['X-LLM-API-Key'] = llmConfig.apiKey
     config.headers['X-Anthropic-API-Key'] = llmConfig.apiKey
     config.headers['X-LLM-Provider'] = llmConfig.provider
     config.headers['X-LLM-Base-URL'] = llmConfig.baseUrl
@@ -97,6 +98,7 @@ export const apiService = {
         // 添加 LLM 配置 headers
         const llmConfig = getLLMConfig()
         if (llmConfig?.apiKey) {
+          headers['X-LLM-API-Key'] = llmConfig.apiKey
           headers['X-Anthropic-API-Key'] = llmConfig.apiKey
           headers['X-LLM-Provider'] = llmConfig.provider
           headers['X-LLM-Base-URL'] = llmConfig.baseUrl

@@ -14,7 +14,7 @@
 
 Calling a generation API directly gives you "usable" images. EasyDrawer adds an 8-stage **Prompt Ensemble → CLIP Scoring → Variant Search → img2img Refinement** pipeline that automates quality optimization.
 
-| Raw API |    EasyDrawer   |
+| Raw API | EasyDrawer |
 |---------|-----------------|
 | Manual prompt writing | 3-variant prompt ensemble, AI-optimized |
 | One-shot luck | Batch generation → CLIP scoring → MMR diversity selection |
@@ -22,32 +22,6 @@ Calling a generation API directly gives you "usable" images. EasyDrawer adds an 
 | Manual parameter tuning | ε-greedy Bandit learns optimal params from history |
 | Feedback only tweaks words | Joint adjustment: prompt + CFG/Steps based on weak dimensions |
 | Vendor lock-in | Switch LLMs on the fly: Anthropic / OpenAI / DeepSeek / custom |
-
-## New
-
-### Algorithm Optimizations
-
-- **MMR Diversity Selection**: No longer picks pure highest score. When top-2 score gap < 5, computes CLIP embedding cosine distance and uses `MMR = 0.7×quality + 0.3×diversity` to preserve ensemble variety
-- **Parameter Bandit Feedback**: Reads historical params and scores from SQLite, uses ε-greedy (ε=0.2) to auto-tune CFG/Steps. Only adjusts when historical best bucket outperforms by 2+ points, with smooth transition
-- **Joint Feedback Adjustment**: Feedback doesn't just rewrite prompts — it generates parameter adjustment suggestions based on weak dimensions (low sharpness → +steps, low CLIP → +CFG), passed via `param_adjustment`
-- **CLIP Length-Adaptive Calibration**: Calibrates CLIP similarity range by prompt token count (3 tiers), eliminating systematic under-scoring of long prompts
-- **Continuous Scoring Functions**: Resolution/brightness/contrast/sharpness all use sigmoid continuous functions instead of step thresholds, eliminating score jumps
-- **Adaptive Variant Step Size**: Dynamically computes CFG/guidance offsets based on current position in valid range, avoiding clamped duplicates at boundaries
-
-### Engineering Improvements
-
-- **Thread Safety**: LLM config passed per-request, each request gets independent optimizer, eliminating concurrent race conditions
-- **Concurrent Ensemble Generation**: `asyncio.gather` replaces serial loop, 3 variants generated concurrently (~60% faster)
-- **Async Database**: All SQLite operations wrapped with `asyncio.to_thread`, no longer blocks the event loop
-- **Concurrency Control**: `asyncio.Semaphore` limits simultaneous generation tasks
-- **Error Edge Protection**: Generation failures auto-route to END, preventing downstream scoring crashes
-
-### Frontend Redesign — "Aurora Glass"
-
-- Glassmorphism design with warm-toned ambient glow
-- Plus Jakarta Sans + Noto Sans SC typography
-- Floating aurora animations, image hover zoom, quality breakdown bars
-- Style selection cards, backend switcher, example prompts
 
 ## Quick Start
 
@@ -103,7 +77,7 @@ User Input
 | Technical Quality | 15% | Resolution + brightness + contrast, sigmoid continuous |
 | Sharpness | 15% | Laplacian variance, log-scaled continuous function |
 
-Automatically degrades to `technical_only` mode (technical 50% + sharpness 50%) when CLIP model is unavailable. Downstream consumers can detect this via the `scoring_mode` field.
+When CLIP is available but the optional aesthetic predictor is missing, scoring degrades to `clip_only` mode (CLIP 55% + technical 20% + sharpness 25%). When CLIP is unavailable, it uses `technical_only` mode (technical 50% + sharpness 50%). Downstream consumers can detect this via the `scoring_mode` field.
 
 ## Tech Stack
 
@@ -148,7 +122,7 @@ start.bat                      # Windows
 | GET | `/history/{id}` | Get history detail |
 | DELETE | `/history/{id}` | Delete history record |
 
-Custom LLM headers: `X-LLM-API-Key`, `X-LLM-Base-URL`, `X-LLM-Model`
+Custom LLM headers: `X-LLM-API-Key`, `X-LLM-Base-URL`, `X-LLM-Model`. Legacy `X-Anthropic-API-Key` is still accepted.
 
 API docs: http://localhost:8000/docs
 

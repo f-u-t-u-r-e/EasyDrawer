@@ -148,7 +148,7 @@ class QualityBreakdown(BaseModel):
     overall: float = Field(..., description="综合加权分 0-100")
     scoring_mode: str = Field(
         "full",
-        description="评分模式: full=CLIP+美学+技术, technical_only=无CLIP时仅技术指标",
+        description="评分模式: full=CLIP+美学+技术, clip_only=CLIP+技术, technical_only=仅技术指标",
     )
 
 

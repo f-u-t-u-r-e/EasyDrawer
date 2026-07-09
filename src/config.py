@@ -8,6 +8,9 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
+    # 应用元信息
+    app_version: str = "0.4.0"
+
     # LLM配置
     anthropic_api_key: str = ""  # 允许为空，启动时检查
     llm_model: str = "claude-sonnet-4-6"

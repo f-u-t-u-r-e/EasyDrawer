@@ -1,9 +1,9 @@
-"""FastAPI 应用入口 v0.3
+"""FastAPI 应用入口 v0.4
 
-v0.3 新增：
+v0.4 重点：
 - 历史记录 CRUD 端点
 - 生成完成后自动保存历史
-- 版本号更新到 0.3.0
+- 每请求独立 LLM 配置，兼容 X-LLM-API-Key 与旧版 X-Anthropic-API-Key
 """
 
 import json
@@ -37,12 +37,34 @@ agent: ImageGenerationAgent | None = None
 history: HistoryService | None = None
 
 
+def _resolve_llm_config(
+    *,
+    x_llm_api_key: str | None = None,
+    x_anthropic_api_key: str | None = None,
+    x_llm_base_url: str | None = None,
+    x_llm_model: str | None = None,
+) -> LLMConfig:
+    """Resolve per-request LLM config with backward-compatible API key headers."""
+    api_key = x_llm_api_key or x_anthropic_api_key or settings.anthropic_api_key
+    if not api_key or api_key == "your_claude_api_key_here":
+        raise HTTPException(
+            status_code=503,
+            detail="未配置 API 密钥。请在前端设置面板中配置 LLM 提供商和 API 密钥。",
+        )
+
+    return LLMConfig(
+        api_key=api_key,
+        base_url=x_llm_base_url,
+        model=x_llm_model,
+    )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
     global agent, history
 
-    logger.info("EasyDrawer v0.3.0 启动中...")
+    logger.info("EasyDrawer v%s 启动中...", settings.app_version)
 
     history = HistoryService()
     agent = ImageGenerationAgent(history_service=history)
@@ -74,7 +96,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="EasyDrawer API",
     description="智能生图 Agent — Prompt Ensemble + 变体搜索 + img2img 精修",
-    version="0.3.0",
+    version=settings.app_version,
     lifespan=lifespan,
 )
 
@@ -92,7 +114,7 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
-    return {"service": "EasyDrawer", "version": "0.3.0", "status": "running"}
+    return {"service": "EasyDrawer", "version": settings.app_version, "status": "running"}
 
 
 @app.get("/health")
@@ -126,6 +148,7 @@ async def health_check():
 @app.post("/generate", response_model=GenerationResponse)
 async def generate_image(
     request: GenerationRequest,
+    x_llm_api_key: str | None = Header(None, alias="X-LLM-API-Key"),
     x_anthropic_api_key: str | None = Header(None, alias="X-Anthropic-API-Key"),
     x_llm_provider: str | None = Header(None, alias="X-LLM-Provider"),
     x_llm_base_url: str | None = Header(None, alias="X-LLM-Base-URL"),
@@ -134,7 +157,8 @@ async def generate_image(
     """生成图片（一次性返回）
 
     支持通过 header 动态配置 LLM:
-    - X-Anthropic-API-Key: API 密钥（必需）
+    - X-LLM-API-Key: API 密钥（推荐）
+    - X-Anthropic-API-Key: API 密钥（兼容旧版本）
     - X-LLM-Provider: 提供商名称（如 anthropic, openai, deepseek）
     - X-LLM-Base-URL: API 基础 URL（可选，用于代理或自定义端点）
     - X-LLM-Model: 模型名称（可选）
@@ -142,20 +166,13 @@ async def generate_image(
     if not agent:
         raise HTTPException(status_code=503, detail="Agent 未初始化")
 
-    # 优先使用 header 中的配置，否则使用 .env 配置
-    api_key = x_anthropic_api_key or settings.anthropic_api_key
-    if not api_key or api_key == "your_claude_api_key_here":
-        raise HTTPException(
-            status_code=503,
-            detail="未配置 API 密钥。请在前端设置面板中配置 LLM 提供商和 API 密钥。"
-        )
-
     try:
         # 线程安全：通过参数传递 LLM 配置，不修改全局 agent
-        llm_config = LLMConfig(
-            api_key=api_key,
-            base_url=x_llm_base_url,
-            model=x_llm_model,
+        llm_config = _resolve_llm_config(
+            x_llm_api_key=x_llm_api_key,
+            x_anthropic_api_key=x_anthropic_api_key,
+            x_llm_base_url=x_llm_base_url,
+            x_llm_model=x_llm_model,
         )
 
         response = await agent.generate(request, llm_config=llm_config)
@@ -175,6 +192,7 @@ async def generate_image(
 @app.post("/generate/stream")
 async def generate_image_stream(
     request: GenerationRequest,
+    x_llm_api_key: str | None = Header(None, alias="X-LLM-API-Key"),
     x_anthropic_api_key: str | None = Header(None, alias="X-Anthropic-API-Key"),
     x_llm_provider: str | None = Header(None, alias="X-LLM-Provider"),
     x_llm_base_url: str | None = Header(None, alias="X-LLM-Base-URL"),
@@ -187,23 +205,15 @@ async def generate_image_stream(
     if not agent:
         raise HTTPException(status_code=503, detail="Agent 未初始化")
 
-    # 优先使用 header 中的配置
-    api_key = x_anthropic_api_key or settings.anthropic_api_key
-    if not api_key or api_key == "your_claude_api_key_here":
-        raise HTTPException(
-            status_code=503,
-            detail="未配置 API 密钥。请在前端设置面板中配置 LLM 提供商和 API 密钥。"
-        )
+    llm_config = _resolve_llm_config(
+        x_llm_api_key=x_llm_api_key,
+        x_anthropic_api_key=x_anthropic_api_key,
+        x_llm_base_url=x_llm_base_url,
+        x_llm_model=x_llm_model,
+    )
 
     async def event_generator():
         try:
-            # 线程安全：通过参数传递 LLM 配置
-            llm_config = LLMConfig(
-                api_key=api_key,
-                base_url=x_llm_base_url,
-                model=x_llm_model,
-            )
-
             final_response = None
             async for event in agent.generate_stream(request, llm_config=llm_config):
                 # 捕获最终结果用于保存历史
@@ -235,6 +245,7 @@ async def generate_image_stream(
 async def optimize_prompt_only(
     prompt: str,
     style: str | None = None,
+    x_llm_api_key: str | None = Header(None, alias="X-LLM-API-Key"),
     x_anthropic_api_key: str | None = Header(None, alias="X-Anthropic-API-Key"),
     x_llm_provider: str | None = Header(None, alias="X-LLM-Provider"),
     x_llm_base_url: str | None = Header(None, alias="X-LLM-Base-URL"),
@@ -247,22 +258,21 @@ async def optimize_prompt_only(
     if not agent:
         raise HTTPException(status_code=503, detail="Agent 未初始化")
 
-    # 优先使用 header 中的配置
-    api_key = x_anthropic_api_key or settings.anthropic_api_key
-    if not api_key or api_key == "your_claude_api_key_here":
-        raise HTTPException(
-            status_code=503,
-            detail="未配置 API 密钥。请在前端设置面板中配置 LLM 提供商和 API 密钥。"
-        )
-
     try:
         # 线程安全：创建本地 optimizer，不修改全局 agent
         from src.services.prompt_optimizer import PromptOptimizer
 
+        llm_config = _resolve_llm_config(
+            x_llm_api_key=x_llm_api_key,
+            x_anthropic_api_key=x_anthropic_api_key,
+            x_llm_base_url=x_llm_base_url,
+            x_llm_model=x_llm_model,
+        )
+
         optimizer = PromptOptimizer(
-            api_key=api_key,
-            base_url=x_llm_base_url,
-            model=x_llm_model,
+            api_key=llm_config.api_key,
+            base_url=llm_config.base_url,
+            model=llm_config.model,
         )
 
         style_enum = ImageStyle(style) if style else None

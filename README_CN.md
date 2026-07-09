@@ -14,7 +14,7 @@
 
 直接调用生图 API 只能得到"能用"的图。EasyDrawer 通过 **Prompt Ensemble → CLIP 评分 → 变体搜索 → img2img 精修** 八阶段管线，自动产出精品图片。
 
-| 传统方式 | EasyDrawer v0.4 |
+| 传统方式 | EasyDrawer |
 |---------|-----------------|
 | 手写提示词 | 3 变体 Prompt Ensemble 自动生成最优提示词 |
 | 1 张碰运气 | 批量生成 → CLIP 评分 → MMR 多样性选图 |
@@ -22,32 +22,6 @@
 | 参数靠经验 | ε-greedy Bandit 从历史评分自动学习最优参数 |
 | 反馈只调词 | 联合调参：根据薄弱维度同时调整提示词 + CFG/Steps |
 | 厂商锁定 | 前端自由切换 Anthropic / OpenAI / DeepSeek / 自定义 |
-
-## 新特性
-
-### 算法优化
-
-- **MMR 多样性选图**：不再纯选最高分。当 top-2 分差 < 5 分时，计算 CLIP embedding 余弦距离，用 `MMR = 0.7×质量 + 0.3×多样性` 选图，保留 Ensemble 多样性价值
-- **参数 Bandit 反馈**：系统从历史数据库读取同场景+风格的历史参数和评分，用 ε-greedy 策略（ε=0.2）自动调整 CFG/Steps。仅当历史最优桶均分高出 2+ 分时才调整，平滑过渡避免跳变
-- **反馈循环联合调参**：反馈不仅调整提示词，还根据薄弱维度生成参数调整建议（sharpness 低 → +steps，CLIP 低 → +CFG），通过 `param_adjustment` 传递给参数优化器
-- **CLIP 长度自适应校准**：按 prompt token 数分三档校准 CLIP 相似度区间，消除长 prompt 被系统性低估的偏差
-- **连续评分函数**：分辨率/亮度/对比度/清晰度全部改用 sigmoid 连续函数，替代阶梯式阈值，消除评分跳变
-- **自适应变体步长**：根据当前 CFG/guidance 在合法区间中的位置动态计算偏移，避免 clamp 到边界后产生无差异变体
-
-### 工程改进
-
-- **线程安全**：LLM 配置通过参数传递，每请求独立 optimizer，彻底消除并发竞态条件
-- **Ensemble 并发生成**：`asyncio.gather` 替代串行循环，3 变体并发生成，约 60% 提速
-- **异步数据库**：所有 SQLite 操作通过 `asyncio.to_thread` 包装，不再阻塞事件循环
-- **并发控制**：`asyncio.Semaphore` 限制同时执行的生图任务数
-- **错误边保护**：生成失败时自动跳转 END，不会继续执行后续评分节点
-
-### 前端重构 — "Aurora Glass"
-
-- 玻璃拟态（Glassmorphism）设计风格，暖色调辉光背景
-- Plus Jakarta Sans + Noto Sans SC 字体
-- 浮动极光动画、图片悬浮缩放、质量分解进度条
-- 风格选择卡片、生图引擎切换、示例提示词
 
 ## 快速开始
 
@@ -103,7 +77,7 @@ python run.py --frontend
 | 技术质量 | 15% | 分辨率 + 亮度 + 对比度，sigmoid 连续函数 |
 | 清晰度 | 15% | 拉普拉斯方差，log 缩放连续函数 |
 
-无 CLIP 模型时自动降级为 `technical_only` 模式（技术 50% + 清晰度 50%），下游可通过 `scoring_mode` 字段感知。
+当 CLIP 可用但可选美学模型缺失时，自动降级为 `clip_only` 模式（CLIP 55% + 技术 20% + 清晰度 25%）。无 CLIP 模型时降级为 `technical_only` 模式（技术 50% + 清晰度 50%），下游可通过 `scoring_mode` 字段感知。
 
 ## 技术栈
 
@@ -148,7 +122,7 @@ start.bat                      # Windows
 | GET | `/history/{id}` | 获取历史详情 |
 | DELETE | `/history/{id}` | 删除历史记录 |
 
-自定义 LLM 请求头：`X-LLM-API-Key`、`X-LLM-Base-URL`、`X-LLM-Model`
+自定义 LLM 请求头：`X-LLM-API-Key`、`X-LLM-Base-URL`、`X-LLM-Model`。旧版 `X-Anthropic-API-Key` 仍兼容。
 
 接口文档: http://localhost:8000/docs
 

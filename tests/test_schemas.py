@@ -42,3 +42,16 @@ def test_quality_breakdown_technical_only():
         scoring_mode="technical_only",
     )
     assert breakdown.scoring_mode == "technical_only"
+
+
+def test_quality_breakdown_clip_only():
+    """QualityBreakdown 应支持 CLIP 可用但美学模型缺失的模式"""
+    breakdown = QualityBreakdown(
+        clip_similarity=78.0,
+        aesthetic_score=50.0,
+        technical_score=82.0,
+        sharpness=80.0,
+        overall=79.9,
+        scoring_mode="clip_only",
+    )
+    assert breakdown.scoring_mode == "clip_only"
