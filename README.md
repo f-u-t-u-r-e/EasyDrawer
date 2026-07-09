@@ -14,7 +14,7 @@
 
 Calling a generation API directly gives you "usable" images. EasyDrawer adds an 8-stage **Prompt Ensemble → CLIP Scoring → Variant Search → img2img Refinement** pipeline that automates quality optimization.
 
-| Raw API | EasyDrawer v0.4 |
+| Raw API |    EasyDrawer   |
 |---------|-----------------|
 | Manual prompt writing | 3-variant prompt ensemble, AI-optimized |
 | One-shot luck | Batch generation → CLIP scoring → MMR diversity selection |
