@@ -42,6 +42,14 @@ class ImageBackend(str, Enum):
     FLUX = "flux"
 
 
+class LLMConfig(BaseModel):
+    """LLM 配置 — 通过请求参数传递，避免修改全局 agent（线程安全）"""
+
+    api_key: str | None = Field(None, description="LLM API 密钥")
+    base_url: str | None = Field(None, description="API 基础 URL（代理/中转/自部署）")
+    model: str | None = Field(None, description="模型名称")
+
+
 class GenerationRequest(BaseModel):
     """生图请求"""
 
@@ -138,6 +146,10 @@ class QualityBreakdown(BaseModel):
     technical_score: float = Field(..., description="技术质量 0-100")
     sharpness: float = Field(..., description="清晰度 0-100")
     overall: float = Field(..., description="综合加权分 0-100")
+    scoring_mode: str = Field(
+        "full",
+        description="评分模式: full=CLIP+美学+技术, technical_only=无CLIP时仅技术指标",
+    )
 
 
 class GeneratedImage(BaseModel):

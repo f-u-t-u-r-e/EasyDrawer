@@ -2,7 +2,7 @@
 
 新增：
 - img2img 精修方法 — 对已有图片做低降噪二次优化
-- seed 邻域生成 — 在 best_seed ± offset 范围内生成变体
+- 变体搜索 — 固定 seed，微调 CFG 产生有控的质量变化
 """
 
 import json
@@ -142,38 +142,53 @@ class StableDiffusionClient:
             is_refined=True,
         )
 
-    # ── Seed 邻域搜索 ────────────────────────────────────────
+    # ── 变体搜索 ────────────────────────────────────────────
 
-    async def generate_seed_neighbors(
+    async def generate_variants(
         self,
         params: SDParameters,
-        best_seed: int,
-        offsets: list[int] | None = None,
+        cfg_offsets: list[float] | None = None,
     ) -> list[GeneratedImage]:
-        """在 best_seed 附近生成变体
+        """在最佳参数附近生成变体 — 固定 seed，微调 CFG
 
-        SD 的 seed 空间具有局部连续性——相邻 seed 产生相似但不同的构图。
-        用于在好图附近精搜更好的变体。
+        原理：seed±1 在 SD 的 PRNG 空间中不产生相似构图（伪随机序列
+        无局部连续性）。改为固定最佳 seed，微调 CFG scale 产生有控的
+        质量变化：
+        - 同一 seed → 同一初始噪声 → 相同构图基础
+        - 不同 CFG → 对 prompt 的不同遵循度 → 细节/风格强度变化
+
+        优化6: 自适应步长 — 根据当前 CFG 在合法区间 [5, 10] 中的位置
+        动态计算偏移，避免 clamp 到边界后产生无差异变体。
 
         Args:
-            params: 生图参数
-            best_seed: 最佳种子值
-            offsets: 偏移列表，默认 [-2, -1, 1, 2]
+            params: 最佳图片的生图参数（seed 已固定）
+            cfg_offsets: CFG 偏移列表，None 时自动计算自适应步长
         """
-        if offsets is None:
-            offsets = [-2, -1, 1, 2]
+        if cfg_offsets is None:
+            # 优化6: 自适应步长
+            current_cfg = params.cfg_scale
+            cfg_min, cfg_max = 5.0, 10.0
+            # 计算向上下还有多少空间
+            space_up = cfg_max - current_cfg
+            space_down = current_cfg - cfg_min
+            # 步长取空间较小方向的一半，但不超过 1.0
+            step = min(0.5, min(space_up, space_down) / 2)
+            if step < 0.1:
+                # 空间太小，用固定小步长
+                step = 0.25
+            cfg_offsets = [-step, step, step * 2]
+        else:
+            cfg_offsets = list(cfg_offsets)
 
         images = []
-        for offset in offsets:
-            neighbor_seed = best_seed + offset
-            if neighbor_seed < 0:
-                continue
-            neighbor_params = params.model_copy(update={"seed": neighbor_seed})
+        for offset in cfg_offsets:
+            new_cfg = max(1.0, min(15.0, params.cfg_scale + offset))
+            variant_params = params.model_copy(update={"cfg_scale": new_cfg})
             try:
-                result = await self.generate(neighbor_params, batch_size=1)
+                result = await self.generate(variant_params, batch_size=1)
                 images.extend(result)
             except Exception:
-                # 单个 seed 失败不中断整体流程
+                # 单个变体失败不中断整体流程
                 continue
         return images
 

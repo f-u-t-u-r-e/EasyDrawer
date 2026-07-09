@@ -3,7 +3,7 @@
 修复：
 1. base64 import 移到文件顶部（原在函数体内）
 2. 轮询增加指数退避 + 错误重试
-3. 增加 seed 邻域搜索支持
+3. 变体搜索 — 固定 seed，微调 guidance 产生有控的质量变化
 """
 
 import asyncio
@@ -146,25 +146,45 @@ class FLUXClient:
 
         raise TimeoutError(f"FLUX 生成超时 ({max_wait}s): task_id={task_id}")
 
-    # ── Seed 邻域搜索 ────────────────────────────────────────
+    # ── 变体搜索 ────────────────────────────────────────────
 
-    async def generate_seed_neighbors(
+    async def generate_variants(
         self,
         params: FLUXParameters,
-        best_seed: int,
-        offsets: list[int] | None = None,
+        guidance_offsets: list[float] | None = None,
     ) -> list[GeneratedImage]:
-        """在 best_seed 附近生成变体"""
-        if offsets is None:
-            offsets = [-2, -1, 1, 2]
+        """在最佳参数附近生成变体 — 固定 seed，微调 guidance
+
+        原理：seed±1 不产生相似构图（伪随机序列无局部连续性）。
+        改为固定最佳 seed，微调 guidance 产生有控的质量变化：
+        - 同一 seed → 相同构图基础
+        - 不同 guidance → 对 prompt 的不同遵循度
+
+        优化6: 自适应步长 — 根据当前 guidance 在合法区间 [0, 10] 中的
+        位置动态计算偏移，避免 clamp 到边界后产生无差异变体。
+
+        Args:
+            params: 最佳图片的生图参数（seed 已固定）
+            guidance_offsets: guidance 偏移列表，None 时自动计算自适应步长
+        """
+        if guidance_offsets is None:
+            # 优化6: 自适应步长
+            current_g = params.guidance
+            g_min, g_max = 0.0, 10.0
+            space_up = g_max - current_g
+            space_down = current_g - g_min
+            step = min(0.5, min(space_up, space_down) / 2)
+            if step < 0.1:
+                step = 0.25
+            guidance_offsets = [-step, step, step * 2]
+        else:
+            guidance_offsets = list(guidance_offsets)
 
         tasks = []
-        for offset in offsets:
-            neighbor_seed = best_seed + offset
-            if neighbor_seed < 0:
-                continue
-            neighbor_params = params.model_copy(update={"seed": neighbor_seed})
-            tasks.append(self._generate_single(neighbor_params, 0, max_retries=1))
+        for offset in guidance_offsets:
+            new_guidance = max(0.0, params.guidance + offset)
+            variant_params = params.model_copy(update={"guidance": new_guidance})
+            tasks.append(self._generate_single(variant_params, 0, max_retries=1))
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
         return [r for r in results if isinstance(r, GeneratedImage)]

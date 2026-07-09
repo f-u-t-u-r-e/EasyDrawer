@@ -15,23 +15,24 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, text, progress
     error: XCircle,
   }
 
-  const colors = {
-    idle: 'text-slate-400',
-    loading: 'text-blue-400 animate-spin',
-    success: 'text-green-400',
-    error: 'text-red-400',
+  const colorMap = {
+    idle: { icon: 'text-slate-600', text: 'text-slate-500' },
+    loading: { icon: 'text-amber-400 animate-spin', text: 'text-slate-200' },
+    success: { icon: 'text-teal-400', text: 'text-slate-400' },
+    error: { icon: 'text-rose-400', text: 'text-rose-300' },
   }
 
   const Icon = icons[status]
+  const colors = colorMap[status]
 
   return (
-    <div className="flex items-center gap-2 text-sm">
-      <Icon className={`w-4 h-4 ${colors[status]}`} />
-      <span className="text-slate-300 flex-1">{text}</span>
+    <div className="flex items-center gap-2.5 text-sm">
+      <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${colors.icon}`} />
+      <span className={`flex-1 truncate ${colors.text}`}>{text}</span>
       {progress !== undefined && progress > 0 && (
-        <div className="w-20 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+        <div className="progress-bar w-16">
           <div
-            className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-500"
+            className="progress-bar-fill"
             style={{ width: `${Math.min(100, progress * 100)}%` }}
           />
         </div>

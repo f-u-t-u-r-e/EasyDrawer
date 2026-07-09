@@ -12,13 +12,13 @@
 
 ## 为什么选择 EasyDrawer？
 
-直接调用生图 API 只能得到"能用"的图。EasyDrawer 通过 **Prompt Ensemble → CLIP 评分 → Seed 精搜 → img2img 精修** 四阶段管线，自动产出精品图片。
+直接调用生图 API 只能得到"能用"的图。EasyDrawer 通过 **Prompt Ensemble → CLIP 评分 → 变体搜索 → img2img 精修** 四阶段管线，自动产出精品图片。
 
 | 传统方式 | EasyDrawer v0.3 |
 |---------|-----------------|
 | 手写提示词 | 3 变体 Prompt Ensemble 自动生成最优提示词 |
 | 1 张碰运气 | 批量生成 → CLIP 评分 → 只返回最佳 |
-| 质量不可控 | Seed 邻域搜索 + img2img 精修双重打磨 |
+| 质量不可控 | CFG 变体搜索 + img2img 精修双重打磨 |
 | 厂商锁定 | 前端自由切换 Anthropic / OpenAI / DeepSeek / 自定义 |
 
 ## 快速开始
@@ -59,7 +59,7 @@ python run.py --frontend
   ├─→ 批量生成       SD 4.0 / FLUX 双后端
   ├─→ CLIP 评分      批量推理，2-3x 加速
   ├─→ 质量评估       不达标自动反馈重试
-  ├─→ Seed 精搜      邻域搜索更优种子
+  ├─→ 变体搜索       固定 seed，微调 CFG 搜索更优变体
   ├─→ img2img 精修   低强度去噪，保留构图提升细节
   │
   └─→ 返回最佳结果

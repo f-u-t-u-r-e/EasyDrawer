@@ -69,6 +69,7 @@ export interface QualityBreakdown {
   technical_score: number
   sharpness: number
   overall: number
+  scoring_mode?: string
 }
 
 export interface GeneratedImage {

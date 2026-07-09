@@ -13,7 +13,7 @@ interface ImageGalleryProps {
 export const ImageGallery: React.FC<ImageGalleryProps> = ({
   images,
   bestImageSeed,
-  onImageClick
+  onImageClick,
 }) => {
   const downloadImage = (image: GeneratedImage, e: React.MouseEvent) => {
     e.stopPropagation()
@@ -26,12 +26,14 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {images.map((image, idx) => {
-        const isBest = image.seed === bestImageSeed && image.quality_score === Math.max(...images.map(i => i.quality_score || 0))
+        const isBest =
+          image.seed === bestImageSeed &&
+          image.quality_score === Math.max(...images.map((i) => i.quality_score || 0))
 
         return (
           <div
             key={`${image.seed}-${idx}`}
-            className={`image-card ${isBest ? 'ring-2 ring-yellow-400' : ''}`}
+            className={`image-card group ${isBest ? 'ring-2 ring-amber-400/60' : ''}`}
             onClick={() => onImageClick(image)}
           >
             <img
@@ -41,46 +43,63 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({
             />
 
             {/* 顶部标签 */}
-            <div className="absolute top-2 left-2 flex gap-1.5">
+            <div className="absolute top-2.5 left-2.5 flex gap-1.5">
               {image.variant_index !== undefined && image.variant_index < VARIANT_LABELS.length && (
-                <span className="px-1.5 py-0.5 bg-blue-500/80 text-white text-[10px] rounded">
+                <span
+                  className="px-2 py-0.5 text-[10px] rounded-md font-medium text-white"
+                  style={{ background: 'rgba(245, 158, 11, 0.7)', backdropFilter: 'blur(4px)' }}
+                >
                   {VARIANT_LABELS[image.variant_index]}
                 </span>
               )}
               {image.is_refined && (
-                <span className="px-1.5 py-0.5 bg-pink-500/80 text-white text-[10px] rounded flex items-center gap-0.5">
+                <span
+                  className="px-2 py-0.5 text-[10px] rounded-md font-medium text-white flex items-center gap-0.5"
+                  style={{ background: 'rgba(244, 63, 94, 0.7)', backdropFilter: 'blur(4px)' }}
+                >
                   <Wand2 className="w-2.5 h-2.5" />
                   精修
                 </span>
               )}
             </div>
 
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            {/* 最佳标记 */}
+            {isBest && (
+              <div className="absolute top-2.5 right-2.5">
+                <span
+                  className="flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-md font-semibold text-amber-300"
+                  style={{ background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(4px)', border: '1px solid rgba(245, 158, 11, 0.3)' }}
+                >
+                  <Star className="w-2.5 h-2.5 fill-current" />
+                  最佳
+                </span>
+              </div>
+            )}
 
-            <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform">
+            {/* 渐变遮罩 */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+            {/* 底部信息 */}
+            <div className="absolute bottom-0 left-0 right-0 p-3.5 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
               <div className="flex items-center justify-between">
                 <div className="flex flex-col gap-1">
-                  {isBest && (
-                    <div className="flex items-center gap-1 text-yellow-400 text-xs font-semibold">
-                      <Star className="w-3 h-3 fill-current" />
-                      <span>最佳</span>
-                    </div>
-                  )}
                   {image.quality_score != null && (
-                    <div className="text-xs text-slate-300">
-                      质量分: {image.quality_score.toFixed(1)}
+                    <div className="text-sm text-amber-400 font-semibold">
+                      {image.quality_score.toFixed(1)}
+                      <span className="text-[10px] text-slate-400 ml-1 font-normal">分</span>
                     </div>
                   )}
-                  <div className="text-xs text-slate-400">
-                    种子: {image.seed}
+                  <div className="text-[10px] text-slate-400">
+                    seed: {image.seed}
                   </div>
                 </div>
 
                 <button
                   onClick={(e) => downloadImage(image, e)}
-                  className="p-2 bg-blue-500/20 hover:bg-blue-500/30 rounded-lg transition-colors"
+                  className="p-2 rounded-lg transition-all hover:scale-110"
+                  style={{ background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.2)' }}
                 >
-                  <Download className="w-4 h-4 text-blue-300" />
+                  <Download className="w-3.5 h-3.5 text-amber-400" />
                 </button>
               </div>
             </div>

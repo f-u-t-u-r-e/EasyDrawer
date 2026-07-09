@@ -18,10 +18,10 @@ const STYLES: { value: ImageStyle; label: string; desc: string; icon: string }[]
 ]
 
 const SIZES = [
-  { label: '正方形 (1:1)', width: 1024, height: 1024 },
-  { label: '横向 (16:9)', width: 1920, height: 1080 },
-  { label: '竖向 (9:16)', width: 768, height: 1344 },
-  { label: '人像 (3:4)', width: 768, height: 1024 },
+  { label: '正方形 1:1', width: 1024, height: 1024 },
+  { label: '横向 16:9', width: 1920, height: 1080 },
+  { label: '竖向 9:16', width: 768, height: 1344 },
+  { label: '人像 3:4', width: 768, height: 1024 },
 ]
 
 const BACKENDS: { value: ImageBackend; label: string; desc: string }[] = [
@@ -64,31 +64,32 @@ export const GenerationForm: React.FC<GenerationFormProps> = ({
   ]
 
   return (
-    <form onSubmit={handleSubmit} className="card space-y-6">
-      <div className="flex items-center gap-3 mb-2">
-        <Sparkles className="w-6 h-6 text-blue-400" />
-        <h2 className="text-2xl font-bold text-slate-100">创作你的图片</h2>
+    <form onSubmit={handleSubmit} className="card space-y-5">
+      <div className="flex items-center gap-2.5 mb-1">
+        <div className="w-1 h-5 rounded-full" style={{ background: 'linear-gradient(180deg, #f59e0b, #f43f5e)' }} />
+        <h2 className="text-lg font-bold text-slate-100 tracking-tight">创作你的图片</h2>
       </div>
 
       {/* 提示词输入 */}
       <div>
-        <label className="block text-sm font-medium text-slate-300 mb-2">
+        <label className="block text-xs font-medium text-slate-400 mb-2 tracking-wide uppercase">
           描述你想要的图片
         </label>
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           placeholder="例如：一只可爱的橘猫坐在窗台上，阳光洒在它身上..."
-          className="input-field h-32 resize-none"
+          className="input-field h-28 resize-none text-sm"
           disabled={isLoading}
         />
-        <div className="mt-2 flex flex-wrap gap-2">
+        <div className="mt-2.5 flex flex-wrap gap-1.5">
           {examplePrompts.map((example, idx) => (
             <button
               key={idx}
               type="button"
               onClick={() => setPrompt(example)}
-              className="text-xs px-3 py-1 bg-slate-700/50 hover:bg-slate-700 text-slate-300 rounded-full transition-colors"
+              className="text-xs px-2.5 py-1 rounded-lg text-slate-400 hover:text-amber-300 transition-all duration-200"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}
               disabled={isLoading}
             >
               {example}
@@ -99,27 +100,23 @@ export const GenerationForm: React.FC<GenerationFormProps> = ({
 
       {/* 生图后端选择 */}
       <div>
-        <label className="block text-sm font-medium text-slate-300 mb-2">
+        <label className="block text-xs font-medium text-slate-400 mb-2 tracking-wide uppercase">
           生图引擎
         </label>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2.5">
           {BACKENDS.map((b) => (
             <button
               key={b.value}
               type="button"
               onClick={() => setBackend(b.value)}
               disabled={isLoading}
-              className={`p-3 rounded-lg border-2 transition-all text-left ${
-                backend === b.value
-                  ? 'border-blue-500 bg-blue-500/10'
-                  : 'border-slate-700 bg-slate-900/30 hover:border-slate-600'
-              }`}
+              className={`backend-chip ${backend === b.value ? 'backend-chip-active' : ''}`}
             >
               <div className="flex items-center gap-2">
-                <Zap className={`w-4 h-4 ${backend === b.value ? 'text-blue-400' : 'text-slate-500'}`} />
-                <span className="font-semibold text-slate-200">{b.label}</span>
+                <Zap className={`w-3.5 h-3.5 ${backend === b.value ? 'text-amber-400' : 'text-slate-500'}`} />
+                <span className="font-semibold text-slate-200 text-sm">{b.label}</span>
               </div>
-              <div className="text-xs text-slate-400 mt-1">{b.desc}</div>
+              <div className="text-[11px] text-slate-500 mt-1">{b.desc}</div>
             </button>
           ))}
         </div>
@@ -127,24 +124,22 @@ export const GenerationForm: React.FC<GenerationFormProps> = ({
 
       {/* 风格选择 */}
       <div>
-        <label className="block text-sm font-medium text-slate-300 mb-3">选择风格</label>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <label className="block text-xs font-medium text-slate-400 mb-2.5 tracking-wide uppercase">
+          选择风格
+        </label>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
           {STYLES.map((s) => (
             <button
               key={s.value}
               type="button"
               onClick={() => setStyle(s.value)}
               disabled={isLoading}
-              className={`p-4 rounded-lg border-2 transition-all text-left ${
-                style === s.value
-                  ? 'border-blue-500 bg-blue-500/10'
-                  : 'border-slate-700 bg-slate-900/30 hover:border-slate-600'
-              }`}
+              className={`style-chip ${style === s.value ? 'style-chip-active' : ''}`}
             >
-              <div className="font-semibold text-slate-200">
+              <div className="font-semibold text-slate-200 text-sm">
                 {s.icon} {s.label}
               </div>
-              <div className="text-xs text-slate-400 mt-1">{s.desc}</div>
+              <div className="text-[11px] text-slate-500 mt-0.5">{s.desc}</div>
             </button>
           ))}
         </div>
@@ -152,16 +147,18 @@ export const GenerationForm: React.FC<GenerationFormProps> = ({
 
       {/* 尺寸选择 */}
       <div>
-        <label className="block text-sm font-medium text-slate-300 mb-2">图片尺寸</label>
+        <label className="block text-xs font-medium text-slate-400 mb-2 tracking-wide uppercase">
+          图片尺寸
+        </label>
         <select
           value={sizeIndex}
           onChange={(e) => setSizeIndex(Number(e.target.value))}
-          className="select-field"
+          className="select-field text-sm"
           disabled={isLoading}
         >
           {SIZES.map((size, idx) => (
             <option key={idx} value={idx}>
-              {size.label} - {size.width}×{size.height}
+              {size.label} — {size.width}×{size.height}
             </option>
           ))}
         </select>
@@ -172,22 +169,22 @@ export const GenerationForm: React.FC<GenerationFormProps> = ({
         <button
           type="button"
           onClick={() => setShowAdvanced(!showAdvanced)}
-          className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-300 transition-colors"
+          className="flex items-center gap-2 text-xs text-slate-500 hover:text-slate-300 transition-colors"
         >
-          <Sliders className="w-4 h-4" />
-          <span>高级设置</span>
+          <Sliders className="w-3.5 h-3.5" />
+          <span className="tracking-wide">高级设置</span>
         </button>
         {showAdvanced && (
-          <div className="mt-4 space-y-4">
+          <div className="mt-3 space-y-3 animate-fade-up">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                负面提示词（要排除的内容）
+              <label className="block text-xs font-medium text-slate-400 mb-2 tracking-wide uppercase">
+                负面提示词
               </label>
               <textarea
                 value={negativePrompt}
                 onChange={(e) => setNegativePrompt(e.target.value)}
                 placeholder="例如：丑陋、模糊、低质量..."
-                className="input-field h-20 resize-none"
+                className="input-field h-16 resize-none text-sm"
                 disabled={isLoading}
               />
             </div>
@@ -199,17 +196,18 @@ export const GenerationForm: React.FC<GenerationFormProps> = ({
       <button
         type="submit"
         disabled={isLoading || !prompt.trim()}
-        className="btn-primary w-full flex items-center justify-center gap-2"
+        className="btn-primary w-full flex items-center justify-center gap-2 text-sm"
       >
         {isLoading ? (
           <>
-            <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white" />
             <span>正在生成魔法中...</span>
           </>
         ) : (
           <>
-            <ImageIcon className="w-5 h-5" />
+            <ImageIcon className="w-4 h-4" />
             <span>开始生成</span>
+            <Sparkles className="w-3.5 h-3.5 opacity-70" />
           </>
         )}
       </button>

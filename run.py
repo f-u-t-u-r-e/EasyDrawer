@@ -29,7 +29,7 @@ def print_banner():
     """打印启动横幅"""
     print()
     print("  ╔══════════════════════════════════════════╗")
-    print("  ║  🎨 EasyDrawer v0.3 — 智能生图 Agent     ║")
+    print("  ║            🎨 EasyDrawer                 ║")
     print("  ╚══════════════════════════════════════════╝")
     print()
     print(f"  系统: {platform.system()} {platform.machine()}")

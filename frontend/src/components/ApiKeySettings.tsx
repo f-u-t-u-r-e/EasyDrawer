@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Key, Save, X, Eye, EyeOff, Globe } from 'lucide-react'
-import { setApiKey, getApiKey, setLLMConfig, getLLMConfig } from '@/services/api'
+import { setApiKey, setLLMConfig, getLLMConfig } from '@/services/api'
 
 interface ApiKeySettingsProps {
   onClose: () => void
@@ -55,8 +55,8 @@ export const ApiKeySettings: React.FC<ApiKeySettingsProps> = ({ onClose }) => {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="card max-w-2xl w-full mx-4 relative max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0, 0, 0, 0.8)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
+      <div className="card max-w-2xl w-full relative max-h-[90vh] overflow-y-auto animate-scale-in" onClick={(e) => e.stopPropagation()}>
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 transition-colors"
@@ -65,12 +65,15 @@ export const ApiKeySettings: React.FC<ApiKeySettingsProps> = ({ onClose }) => {
         </button>
 
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-blue-500/20 rounded-lg">
-            <Key className="w-5 h-5 text-blue-400" />
+          <div
+            className="p-2.5 rounded-xl"
+            style={{ background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.2)' }}
+          >
+            <Key className="w-5 h-5 text-amber-400" />
           </div>
           <div>
             <h2 className="text-xl font-bold text-slate-100">LLM 配置</h2>
-            <p className="text-sm text-slate-400">配置大语言模型提供商和 API 密钥</p>
+            <p className="text-xs text-slate-500">配置大语言模型提供商和 API 密钥</p>
           </div>
         </div>
 
@@ -167,8 +170,8 @@ export const ApiKeySettings: React.FC<ApiKeySettingsProps> = ({ onClose }) => {
           </div>
 
           {/* 提示信息 */}
-          <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-            <p className="text-xs text-blue-300">
+          <div className="rounded-lg p-3" style={{ background: 'rgba(245, 158, 11, 0.06)', border: '1px solid rgba(245, 158, 11, 0.12)' }}>
+            <p className="text-xs text-amber-300/80">
               💡 <strong>获取 API 密钥：</strong>
               <br />
               {config.provider === 'anthropic' && (
@@ -247,7 +250,8 @@ export const ApiKeySettings: React.FC<ApiKeySettingsProps> = ({ onClose }) => {
             </button>
             <button
               onClick={onClose}
-              className="px-6 py-3 border border-slate-600 text-slate-300 rounded-lg hover:bg-slate-700/50 transition-colors"
+              className="px-6 py-3.5 rounded-xl text-slate-300 hover:text-slate-100 transition-all text-sm"
+              style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)' }}
             >
               取消
             </button>

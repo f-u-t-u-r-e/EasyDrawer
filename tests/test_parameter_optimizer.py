@@ -5,12 +5,12 @@ from src.services.parameter_optimizer import ParameterOptimizer
 from src.models.schemas import ImageStyle, SceneType
 
 
-def test_parameter_optimizer():
-    """测试参数优化"""
+def test_parameter_optimizer_sd():
+    """测试 SD 参数优化"""
     optimizer = ParameterOptimizer()
 
     # 测试人像场景
-    params = optimizer.optimize(
+    params = optimizer.optimize_sd(
         prompt="a beautiful woman",
         negative_prompt="ugly",
         scene_type=SceneType.PORTRAIT,
@@ -23,7 +23,7 @@ def test_parameter_optimizer():
     print(f"\n人像参数: steps={params.steps}, cfg={params.cfg_scale}, sampler={params.sampler_name}")
 
     # 测试风景场景
-    params_landscape = optimizer.optimize(
+    params_landscape = optimizer.optimize_sd(
         prompt="mountain landscape",
         negative_prompt="ugly",
         scene_type=SceneType.LANDSCAPE,
@@ -36,3 +36,17 @@ def test_parameter_optimizer():
 
     # 风景场景通常需要更多步数
     assert params_landscape.steps >= params.steps
+
+
+def test_parameter_optimizer_flux():
+    """测试 FLUX 参数优化"""
+    optimizer = ParameterOptimizer()
+
+    params = optimizer.optimize_flux(
+        prompt="a beautiful woman",
+        scene_type=SceneType.PORTRAIT,
+    )
+
+    assert params.steps >= 4
+    assert params.guidance > 0
+    print(f"\nFLUX人像参数: steps={params.steps}, guidance={params.guidance}")

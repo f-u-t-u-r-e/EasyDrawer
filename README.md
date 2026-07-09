@@ -12,13 +12,13 @@
 
 ## Why EasyDrawer?
 
-Calling a generation API directly gives you "usable" images. EasyDrawer adds a **Prompt Ensemble → CLIP Scoring → Seed Search → img2img Refinement** pipeline that automates quality optimization.
+Calling a generation API directly gives you "usable" images. EasyDrawer adds a **Prompt Ensemble → CLIP Scoring → Variant Search → img2img Refinement** pipeline that automates quality optimization.
 
 | Raw API | EasyDrawer v0.3 |
 |---------|-----------------|
 | Manual prompt writing | 3-variant prompt ensemble, AI-optimized |
 | One-shot luck | Batch generation → CLIP scoring → best pick |
-| Unpredictable quality | Seed neighbor search + img2img refinement |
+| Unpredictable quality | CFG variant search + img2img refinement |
 | Vendor lock-in | Switch LLMs on the fly: Anthropic / OpenAI / DeepSeek / custom |
 
 ## Quick Start
@@ -59,7 +59,7 @@ User Input
   ├─→ Batch Generate     SD 4.0 / FLUX dual backends
   ├─→ CLIP Scoring       Batch inference, 2-3x speedup
   ├─→ Quality Gate       Auto-retry with feedback if score < threshold
-  ├─→ Seed Refine        Neighbor search for better compositions
+  ├─→ Variant Search     Fixed seed, tuned CFG for better variants
   ├─→ img2img Refine     Low-denoise polish preserving structure, enhancing detail
   │
   └─→ Return best result

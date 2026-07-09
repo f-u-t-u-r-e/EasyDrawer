@@ -20,6 +20,7 @@ from src.models.schemas import (
     GenerationResponse,
     HistoryListResponse,
     ImageStyle,
+    LLMConfig,
     StreamEvent,
 )
 from src.agent.workflow import ImageGenerationAgent
@@ -43,8 +44,8 @@ async def lifespan(app: FastAPI):
 
     logger.info("EasyDrawer v0.3.0 启动中...")
 
-    agent = ImageGenerationAgent()
     history = HistoryService()
+    agent = ImageGenerationAgent(history_service=history)
 
     sd_ok = await agent.sd_client.check_health()
     flux_ok = await agent.flux_client.check_health()
@@ -72,7 +73,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="EasyDrawer API",
-    description="智能生图 Agent — Prompt Ensemble + Seed 精搜 + img2img 精修",
+    description="智能生图 Agent — Prompt Ensemble + 变体搜索 + img2img 精修",
     version="0.3.0",
     lifespan=lifespan,
 )
@@ -150,24 +151,19 @@ async def generate_image(
         )
 
     try:
-        # 临时替换 prompt_optimizer（支持自定义提供商）
-        from src.services.prompt_optimizer import PromptOptimizer
-
-        original_optimizer = agent.prompt_optimizer
-        agent.prompt_optimizer = PromptOptimizer(
+        # 线程安全：通过参数传递 LLM 配置，不修改全局 agent
+        llm_config = LLMConfig(
             api_key=api_key,
             base_url=x_llm_base_url,
-            model=x_llm_model
+            model=x_llm_model,
         )
 
-        response = await agent.generate(request)
+        response = await agent.generate(request, llm_config=llm_config)
 
-        # 恢复原优化器
-        agent.prompt_optimizer = original_optimizer
-        # 自动保存历史
+        # 自动保存历史（异步，不阻塞事件循环）
         if history:
             try:
-                history.save(response)
+                await history.save_async(response)
             except Exception as e:
                 logger.warning("历史保存失败（不影响返回）: %s", e)
         return response
@@ -201,18 +197,15 @@ async def generate_image_stream(
 
     async def event_generator():
         try:
-            # 临时替换 prompt_optimizer
-            from src.services.prompt_optimizer import PromptOptimizer
-
-            original_optimizer = agent.prompt_optimizer
-            agent.prompt_optimizer = PromptOptimizer(
+            # 线程安全：通过参数传递 LLM 配置
+            llm_config = LLMConfig(
                 api_key=api_key,
                 base_url=x_llm_base_url,
-                model=x_llm_model
+                model=x_llm_model,
             )
 
             final_response = None
-            async for event in agent.generate_stream(request):
+            async for event in agent.generate_stream(request, llm_config=llm_config):
                 # 捕获最终结果用于保存历史
                 if event.get("step") == "complete" and event.get("data"):
                     try:
@@ -221,15 +214,12 @@ async def generate_image_stream(
                         pass
                 yield {"event": "progress", "data": json.dumps(event, ensure_ascii=False)}
 
-            # 流结束后保存历史
+            # 流结束后保存历史（异步）
             if final_response and history:
                 try:
-                    history.save(final_response)
+                    await history.save_async(final_response)
                 except Exception as e:
                     logger.warning("历史保存失败: %s", e)
-
-            # 恢复原优化器
-            agent.prompt_optimizer = original_optimizer
 
         except Exception as e:
             logger.exception("流式生成失败")
@@ -266,21 +256,17 @@ async def optimize_prompt_only(
         )
 
     try:
-        # 临时替换 prompt_optimizer
+        # 线程安全：创建本地 optimizer，不修改全局 agent
         from src.services.prompt_optimizer import PromptOptimizer
 
-        original_optimizer = agent.prompt_optimizer
-        agent.prompt_optimizer = PromptOptimizer(
+        optimizer = PromptOptimizer(
             api_key=api_key,
             base_url=x_llm_base_url,
-            model=x_llm_model
+            model=x_llm_model,
         )
 
         style_enum = ImageStyle(style) if style else None
-        result = await agent.prompt_optimizer.optimize(prompt, style_hint=style_enum)
-
-        # 恢复原优化器
-        agent.prompt_optimizer = original_optimizer
+        result = await optimizer.optimize(prompt, style_hint=style_enum)
 
         return result
     except Exception as e:
@@ -302,7 +288,7 @@ async def list_history(
     if not history:
         raise HTTPException(status_code=503, detail="历史服务未初始化")
 
-    return history.list(
+    return await history.list_async(
         page=page, page_size=page_size, search=search, backend=backend
     )
 
@@ -313,7 +299,7 @@ async def get_history_record(record_id: str):
     if not history:
         raise HTTPException(status_code=503, detail="历史服务未初始化")
 
-    record = history.get(record_id)
+    record = await history.get_async(record_id)
     if record is None:
         raise HTTPException(status_code=404, detail="记录不存在")
     return record
@@ -325,7 +311,7 @@ async def delete_history_record(record_id: str):
     if not history:
         raise HTTPException(status_code=503, detail="历史服务未初始化")
 
-    success = history.delete(record_id)
+    success = await history.delete_async(record_id)
     if not success:
         raise HTTPException(status_code=404, detail="记录不存在")
     return {"deleted": True}

@@ -1,13 +1,37 @@
-"""测试提示词优化器"""
+"""测试提示词优化器
+
+注意：本测试需要有效的 ANTHROPIC_API_KEY 和 anthropic 包，缺少任一时自动跳过。
+"""
 
 import pytest
-from src.services.prompt_optimizer import PromptOptimizer
-from src.models.schemas import ImageStyle
+
+from src.config import settings
+
+# 检查 API key 是否可用
+HAS_API_KEY = bool(
+    settings.anthropic_api_key
+    and settings.anthropic_api_key != "your_claude_api_key_here"
+    and settings.anthropic_api_key.strip()
+)
+
+# 检查 anthropic 包是否已安装
+try:
+    import anthropic  # noqa: F401
+    HAS_ANTHROPIC_PKG = True
+except ImportError:
+    HAS_ANTHROPIC_PKG = False
+
+CAN_RUN = HAS_API_KEY and HAS_ANTHROPIC_PKG
+SKIP_REASON = "需要 ANTHROPIC_API_KEY 和 anthropic 包"
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(not CAN_RUN, reason=SKIP_REASON)
 async def test_prompt_optimizer():
-    """测试基础提示词优化"""
+    """测试基础提示词优化（需要 API key + anthropic 包）"""
+    from src.services.prompt_optimizer import PromptOptimizer
+    from src.models.schemas import ImageStyle
+
     optimizer = PromptOptimizer()
 
     result = await optimizer.optimize(
@@ -26,8 +50,12 @@ async def test_prompt_optimizer():
 
 
 @pytest.mark.asyncio
+@pytest.mark.skipif(not CAN_RUN, reason=SKIP_REASON)
 async def test_style_variations():
-    """测试不同风格"""
+    """测试不同风格（需要 API key + anthropic 包）"""
+    from src.services.prompt_optimizer import PromptOptimizer
+    from src.models.schemas import ImageStyle
+
     optimizer = PromptOptimizer()
 
     styles = [ImageStyle.REALISTIC, ImageStyle.ANIME, ImageStyle.ARTISTIC]
