@@ -23,7 +23,7 @@ Calling a generation API directly gives you "usable" images. EasyDrawer adds an 
 | Feedback only tweaks words | Joint adjustment: prompt + CFG/Steps based on weak dimensions |
 | Vendor lock-in | Switch LLMs on the fly: Anthropic / OpenAI / DeepSeek / custom |
 
-## What's New in v0.4
+## New
 
 ### Algorithm Optimizations
 
